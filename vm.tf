@@ -30,7 +30,7 @@ resource "azurerm_virtual_machine" "main1" {
     version   = "latest"
   }
   storage_os_disk {
-    name              = "myosdisk1"
+    name              = "myosdisk2"
     caching           = "ReadWrite"
     create_option     = "FromImage"
     managed_disk_type = "Standard_LRS"
