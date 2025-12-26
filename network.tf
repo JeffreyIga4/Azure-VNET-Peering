@@ -1,14 +1,14 @@
 # Shared VNet (Hub)
 resource "azurerm_virtual_network" "shared" {
   name                = "shared-vnet"
-  location            = var.location
-  resource_group_name = var.resource_group_name
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
   address_space       = var.shared_vnet_cidr
 }
 
 resource "azurerm_subnet" "shared_subnet" {
   name                 = "shared-subnet"
-  resource_group_name  = var.resource_group_name
+  resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.shared.name
   address_prefixes     = var.shared_subnet_cidr
 }
@@ -16,14 +16,14 @@ resource "azurerm_subnet" "shared_subnet" {
 # Test VNet
 resource "azurerm_virtual_network" "test" {
   name                = "test-vnet"
-  location            = var.location
-  resource_group_name = var.resource_group_name
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
   address_space       = var.test_vnet_cidr
 }
 
 resource "azurerm_subnet" "test_subnet" {
   name                 = "test-subnet"
-  resource_group_name  = var.resource_group_name
+  resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.test.name
   address_prefixes     = var.test_subnet_cidr
 }
@@ -31,7 +31,7 @@ resource "azurerm_subnet" "test_subnet" {
 # VNet Peering: Shared → Test
 resource "azurerm_virtual_network_peering" "shared_to_test" {
   name                      = "shared-to-test"
-  resource_group_name       = var.resource_group_name
+  resource_group_name       = azurerm_resource_group.rg.name
   virtual_network_name      = azurerm_virtual_network.shared.name
   remote_virtual_network_id = azurerm_virtual_network.test.id
 
@@ -41,7 +41,7 @@ resource "azurerm_virtual_network_peering" "shared_to_test" {
 # VNet Peering: Test → Shared
 resource "azurerm_virtual_network_peering" "test_to_shared" {
   name                      = "test-to-shared"
-  resource_group_name       = var.resource_group_name
+  resource_group_name       = azurerm_resource_group.rg.name
   virtual_network_name      = azurerm_virtual_network.test.name
   remote_virtual_network_id = azurerm_virtual_network.shared.id
 
@@ -53,8 +53,8 @@ resource "azurerm_network_interface" "nic" {
   count = var.vm_count
 
   name                = "${var.vm_name_prefix}-nic-${count.index}"
-  location            = var.location
-  resource_group_name = var.resource_group_name
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
 
   ip_configuration {
     name                          = "internal"

@@ -2,8 +2,8 @@ resource "azurerm_linux_virtual_machine" "vm" {
   count = var.vm_count
 
   name                = "${var.vm_name_prefix}-vm-${count.index}"
-  location            = var.location
-  resource_group_name = var.resource_group_name
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
   size                = "Standard_B1s"
 
   network_interface_ids = [
