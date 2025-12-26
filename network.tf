@@ -1,49 +1,64 @@
-resource azurerm_resource_group "rg" {
-    name     = "peer-rg1"
-    location = "canadacentral"
+# Shared VNet (Hub)
+resource "azurerm_virtual_network" "shared" {
+  name                = "shared-vnet"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  address_space       = var.shared_vnet_cidr
 }
 
-resource azurerm_virtual_network "vnet1" {
-    name = "peer1-vnet"
-    location = azurerm_resource_group.rg.location
-    address_space = ["10.0.0.0/16"]
-    resource_group_name = azurerm_resource_group.rg.name
+resource "azurerm_subnet" "shared_subnet" {
+  name                 = "shared-subnet"
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = azurerm_virtual_network.shared.name
+  address_prefixes     = var.shared_subnet_cidr
 }
 
-resource "azurerm_subnet" "sn1" {
-  name                 = "peer1-subnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet1.name
-  address_prefixes     = ["10.0.0.0/24"]
-  
+# Test VNet
+resource "azurerm_virtual_network" "test" {
+  name                = "test-vnet"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  address_space       = var.test_vnet_cidr
 }
 
-resource "azurerm_virtual_network" "vnet2" {
-    name = "peer2-vnet"
-    location = azurerm_resource_group.rg.location
-    address_space = ["10.1.0.0/16"]
-    resource_group_name = azurerm_resource_group.rg.name
-  
+resource "azurerm_subnet" "test_subnet" {
+  name                 = "test-subnet"
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = azurerm_virtual_network.test.name
+  address_prefixes     = var.test_subnet_cidr
 }
 
-resource "azurerm_subnet" "sn2" {
-  name                 = "peer2-subnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet2.name
-  address_prefixes     = ["10.1.0.0/24"]
-  
+# VNet Peering: Shared → Test
+resource "azurerm_virtual_network_peering" "shared_to_test" {
+  name                      = "shared-to-test"
+  resource_group_name       = var.resource_group_name
+  virtual_network_name      = azurerm_virtual_network.shared.name
+  remote_virtual_network_id = azurerm_virtual_network.test.id
+
+  allow_virtual_network_access = true
 }
 
-resource "azurerm_virtual_network_peering" "example-1" {
-  name                      = "peer1topeer2"
-  resource_group_name       = azurerm_resource_group.rg.name
-  virtual_network_name      = azurerm_virtual_network.vnet1.name
-  remote_virtual_network_id = azurerm_virtual_network.vnet2.id
+# VNet Peering: Test → Shared
+resource "azurerm_virtual_network_peering" "test_to_shared" {
+  name                      = "test-to-shared"
+  resource_group_name       = var.resource_group_name
+  virtual_network_name      = azurerm_virtual_network.test.name
+  remote_virtual_network_id = azurerm_virtual_network.shared.id
+
+  allow_virtual_network_access = true
 }
 
-resource "azurerm_virtual_network_peering" "example-2" {
-  name                      = "peer2topeer1"
-  resource_group_name       = azurerm_resource_group.rg.name
-  virtual_network_name      = azurerm_virtual_network.vnet2.name
-  remote_virtual_network_id = azurerm_virtual_network.vnet1.id
+# NICs for VMs in test subnet
+resource "azurerm_network_interface" "nic" {
+  count = var.vm_count
+
+  name                = "${var.vm_name_prefix}-nic-${count.index}"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.test_subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
 }
