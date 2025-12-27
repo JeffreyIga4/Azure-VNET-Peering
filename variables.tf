@@ -29,3 +29,7 @@ variable "shared_subnet_cidr" {
 variable "test_subnet_cidr" {
   type = list(string)
 }
+
+variable "bastion_subnet_cidr" {
+  type = list(string)
+}
